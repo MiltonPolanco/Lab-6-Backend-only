@@ -13,10 +13,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Series define el modelo de una serie.
-// Nota: Aunque la base de datos tiene columnas "episodes_watched" y "total_episodes",
-// aquí se mapean al campo LastEpisodeWatched y TotalEpisodes para que el JSON devuelto
-// tenga claves descriptivas que el frontend espera.
+
 type Series struct {
 	ID                 int    `json:"id"`
 	Title              string `json:"title"`
@@ -28,7 +25,7 @@ type Series struct {
 
 var db *sql.DB
 
-// getEnv retorna el valor de una variable de entorno o un valor por defecto.
+
 func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
@@ -36,30 +33,30 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// Endpoint para obtener todas las series, aplicando filtros y ordenamiento.
-func getSeries(w http.ResponseWriter, r *http.Request) {
-	// Leer parámetros de query
-	sortParam := r.URL.Query().Get("sort")   // "asc" o "desc"
-	statusParam := r.URL.Query().Get("status") // Ej: "Watching", "Completed", etc.
-	searchParam := r.URL.Query().Get("search") // Texto a buscar en el título
 
-	// Construir la consulta base
+func getSeries(w http.ResponseWriter, r *http.Request) {
+
+	sortParam := r.URL.Query().Get("sort")  
+	statusParam := r.URL.Query().Get("status") 
+	searchParam := r.URL.Query().Get("search") 
+
+
 	query := "SELECT id, title, status, episodes_watched, total_episodes, ranking FROM series WHERE 1=1"
 	args := []interface{}{}
 
-	// Filtrar por estado si se especifica
+
 	if statusParam != "" {
 		query += " AND status = ?"
 		args = append(args, statusParam)
 	}
 
-	// Filtrar por búsqueda en el título si se especifica
+
 	if searchParam != "" {
 		query += " AND title LIKE ?"
 		args = append(args, "%" + searchParam + "%")
 	}
 
-	// Ordenar por ranking según sortParam
+
 	if sortParam == "asc" {
 		query += " ORDER BY ranking ASC"
 	} else if sortParam == "desc" {
@@ -76,7 +73,7 @@ func getSeries(w http.ResponseWriter, r *http.Request) {
 	var seriesList []Series
 	for rows.Next() {
 		var s Series
-		// Mapear la columna episodes_watched al campo LastEpisodeWatched y total_episodes a TotalEpisodes.
+		
 		if err := rows.Scan(&s.ID, &s.Title, &s.Status, &s.LastEpisodeWatched, &s.TotalEpisodes, &s.Ranking); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -87,7 +84,7 @@ func getSeries(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(seriesList)
 }
 
-// Endpoint para obtener una serie por ID.
+
 func getSeriesByID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -110,7 +107,7 @@ func getSeriesByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s)
 }
 
-// Endpoint para crear una nueva serie.
+
 func createSeries(w http.ResponseWriter, r *http.Request) {
 	var s Series
 	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
@@ -133,7 +130,7 @@ func createSeries(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s)
 }
 
-// Endpoint para actualizar una serie completa (PUT).
+
 func updateSeries(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -157,7 +154,6 @@ func updateSeries(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s)
 }
 
-// Endpoint para eliminar una serie.
 func deleteSeries(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -173,9 +169,7 @@ func deleteSeries(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-/* NUEVOS ENDPOINTS PATCH */
 
-// PATCH /api/series/{id}/episode : Incrementa LastEpisodeWatched en 1.
 func incrementEpisode(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -183,13 +177,13 @@ func incrementEpisode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID inválido", http.StatusBadRequest)
 		return
 	}
-	// Incrementamos episodes_watched en 1 en la base de datos.
+
 	_, err = db.Exec("UPDATE series SET episodes_watched = episodes_watched + 1 WHERE id = ?", id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// Obtenemos la serie actualizada.
+
 	var s Series
 	err = db.QueryRow("SELECT id, title, status, episodes_watched, total_episodes, ranking FROM series WHERE id = ?", id).
 		Scan(&s.ID, &s.Title, &s.Status, &s.LastEpisodeWatched, &s.TotalEpisodes, &s.Ranking)
@@ -201,7 +195,7 @@ func incrementEpisode(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s)
 }
 
-// PATCH /api/series/{id}/upvote : Incrementa Ranking en 1.
+
 func upvoteRanking(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -225,7 +219,7 @@ func upvoteRanking(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s)
 }
 
-// PATCH /api/series/{id}/downvote : Decrementa Ranking en 1.
+
 func downvoteRanking(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
@@ -249,7 +243,7 @@ func downvoteRanking(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(s)
 }
 
-// PATCH /api/series/{id}/status : Actualiza el campo Status.
+
 func updateStatus(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
