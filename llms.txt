@@ -1,0 +1,57 @@
+Uso de la API Series Tracker
+
+1. Configuración:
+   - La API se ejecuta en http://localhost:8080.
+   - Configura las siguientes variables de entorno si es necesario:
+       DB_USER (default: "root")
+       DB_PASS (default: "password")
+       DB_HOST (default: "mariadb")
+       DB_PORT (default: "3306")
+       DB_NAME (default: "series_db")
+   - Levanta la aplicación con Docker:
+       docker-compose down -v
+       docker-compose up --build
+
+2. Endpoints Principales:
+   - GET /api/series:
+       Obtiene la lista de series.
+       Parámetros opcionales:
+         * search: Texto para buscar en el título.
+         * status: Filtrar por estado (ej: "Watching", "Completed").
+         * sort: Ordenar por ranking ("asc" para ascendente, "desc" para descendente).
+   - GET /api/series/{id}:
+       Obtiene la serie con el ID especificado.
+   - POST /api/series:
+       Crea una nueva serie.
+       Ejemplo de JSON:
+       {
+         "title": "Mi Serie",
+         "status": "Watching",
+         "lastEpisodeWatched": 0,
+         "totalEpisodes": 10,
+         "ranking": 5
+       }
+   - PUT /api/series/{id}:
+       Actualiza completamente una serie existente.
+   - DELETE /api/series/{id}:
+       Elimina la serie indicada.
+
+3. Endpoints Parciales (PATCH):
+   - PATCH /api/series/{id}/status:
+       Actualiza el estado de la serie.
+       Body Ejemplo: { "status": "Completed" }
+   - PATCH /api/series/{id}/episode:
+       Incrementa el campo lastEpisodeWatched en 1.
+   - PATCH /api/series/{id}/upvote:
+       Incrementa el ranking en 1.
+   - PATCH /api/series/{id}/downvote:
+       Decrementa el ranking en 1.
+
+4. Uso del Frontend:
+   - Los archivos del frontend se encuentran en la carpeta "static" y se sirven como la raíz.
+   - Accede a la aplicación en http://localhost:8080/index.html.
+   - El frontend consume la API para mostrar, filtrar y actualizar la información de las series.
+
+5. Consideraciones:
+   - La API admite CORS, permitiendo el acceso desde diferentes orígenes.
+   - La documentación completa de la API y ejemplos de uso se encuentran en este archivo y en el README.
